@@ -1,0 +1,59 @@
+name: GMod Server Monitor
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "monitor"
+  cancel-in-progress: false
+
+jobs:
+  collect-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pandas matplotlib
+
+      - name: Query servers (one shot)
+        run: python monitor.py --once
+
+      - name: Generate HTML report
+        run: python generate_report.py
+
+      - name: Commit updated stats.csv
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add stats.csv
+          git diff --quiet --cached || git commit -m "Update stats.csv [skip ci]"
+          git push
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p public
+          cp report.html public/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
