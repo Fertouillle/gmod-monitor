@@ -25,7 +25,7 @@ CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stats.csv")
 OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "report.html")
 
 JOURS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-COLORS = ["#e29443", "#5fb3e0", "#7fd47f", "#e05f7f", "#c99be0"]
+COLORS = ["#2dd4bf", "#818cf8", "#f472b6", "#fbbf24", "#38bdf8"]
 
 
 def load_data():
@@ -44,7 +44,7 @@ def load_data():
 
 def fig_to_base64(fig):
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")
@@ -58,23 +58,36 @@ def make_heatmap_image(df, server_label):
     pivot = sub.pivot_table(index="weekday", columns="hour", values="players", aggfunc="mean")
     pivot = pivot.reindex(index=range(7), columns=range(24))
 
+    plt.rcParams["font.family"] = "sans-serif"
     fig, ax = plt.subplots(figsize=(12, 5))
-    im = ax.imshow(pivot.values, aspect="auto", cmap="RdYlGn_r")
+    fig.patch.set_facecolor("#11162a")
+    ax.set_facecolor("#11162a")
+
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+        "aeron", ["#151b32", "#3730a3", "#2dd4bf"]
+    )
+    im = ax.imshow(pivot.values, aspect="auto", cmap=cmap)
 
     ax.set_xticks(range(24))
-    ax.set_xticklabels([f"{h:02d}h" for h in range(24)], fontsize=8)
+    ax.set_xticklabels([f"{h:02d}h" for h in range(24)], fontsize=8, color="#94a3b8")
     ax.set_yticks(range(7))
-    ax.set_yticklabels(JOURS_FR)
-    ax.set_title(f"Population moyenne — {server_label}")
+    ax.set_yticklabels(JOURS_FR, color="#94a3b8")
+    ax.set_title(f"Population moyenne — {server_label}", color="#e5e7eb", fontsize=13, pad=12)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.tick_params(length=0)
 
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Joueurs en moyenne")
+    cbar.set_label("Joueurs en moyenne", color="#94a3b8")
+    cbar.ax.yaxis.set_tick_params(color="#94a3b8")
+    plt.setp(plt.getp(cbar.ax.axes, "yticklabels"), color="#94a3b8")
+    cbar.outline.set_visible(False)
 
     for i in range(7):
         for j in range(24):
             val = pivot.values[i, j]
             if not np.isnan(val):
-                ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=6, color="black")
+                ax.text(j, i, f"{val:.0f}", ha="center", va="center", fontsize=6, color="#e5e7eb")
 
     plt.tight_layout()
     img_b64 = fig_to_base64(fig)
@@ -165,130 +178,190 @@ def build_html(sections, generated_at, data_range):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aeron — Rapport population serveurs</title>
+<title>Aeron — Observatoire de population</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {{
-    --orange: #e29443;
-    --bg: #0f0f10;
-    --card: #1a1a1c;
-    --card-border: #2a2a2d;
-    --text: #eaeaea;
-    --muted: #8a8a8f;
+    --bg-0: #05070f;
+    --bg-1: #0b0f1e;
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+    --teal: #2dd4bf;
+    --indigo: #818cf8;
+    --pink: #f472b6;
+    --text: #e8eaf0;
+    --muted: #8b93a7;
   }}
   * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
   body {{
-    background: var(--bg);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(129,140,248,0.16), transparent 42%),
+      radial-gradient(circle at 88% 18%, rgba(45,212,191,0.13), transparent 40%),
+      var(--bg-0);
     color: var(--text);
-    font-family: 'Exo 2', 'Segoe UI', Arial, sans-serif;
-    margin: 0;
-    padding: 32px 5vw 64px;
+    font-family: 'Inter', -apple-system, sans-serif;
+    padding: 48px clamp(20px, 6vw, 96px) 80px;
+    min-height: 100vh;
   }}
   header {{
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: flex-end;
     flex-wrap: wrap;
-    border-bottom: 1px solid var(--card-border);
-    padding-bottom: 20px;
-    margin-bottom: 36px;
+    gap: 16px;
+    margin-bottom: 44px;
+  }}
+  .eyebrow {{
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--teal);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
   }}
   h1 {{
-    font-family: 'Orbitron', sans-serif;
-    color: var(--orange);
-    letter-spacing: 1px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(26px, 3.2vw, 38px);
     margin: 0;
-    font-size: 26px;
+    background: linear-gradient(90deg, #f5f7ff 0%, var(--teal) 120%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }}
-  .meta {{ color: var(--muted); font-size: 13px; }}
+  .meta {{ color: var(--muted); font-size: 13px; text-align: right; }}
+
   .server-block {{
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 28px;
-    margin-bottom: 28px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 28px;
+    padding: 32px clamp(20px, 3vw, 40px);
+    margin-bottom: 32px;
+    box-shadow: 0 20px 60px -30px rgba(0,0,0,0.6);
+  }}
+  .server-header {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }}
+  .server-dot {{
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 12px currentColor;
   }}
   .server-block h2 {{
-    font-family: 'Orbitron', sans-serif;
-    color: var(--orange);
-    margin-top: 0;
-    font-size: 18px;
-    letter-spacing: 0.5px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    margin: 0;
+    font-size: 19px;
+    letter-spacing: 0.3px;
   }}
+
   .stat-cards {{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 14px;
-    margin: 20px 0 28px;
+    margin-bottom: 32px;
   }}
   .stat-card {{
-    background: #141415;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    padding: 14px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 16px 18px;
   }}
   .stat-card .label {{
     color: var(--muted);
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
   }}
   .stat-card .value {{
-    font-family: 'Orbitron', sans-serif;
-    font-size: 24px;
-    color: var(--text);
-    margin-top: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin-top: 6px;
   }}
   .badge {{
     display: inline-block;
     font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-top: 6px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-top: 8px;
   }}
-  .badge-up {{ background: rgba(127,212,127,0.15); color: #7fd47f; }}
-  .badge-down {{ background: rgba(224,95,127,0.15); color: #e05f7f; }}
-  .badge-neutral {{ background: rgba(138,138,143,0.15); color: var(--muted); }}
+  .badge-up {{ background: rgba(45,212,191,0.14); color: var(--teal); }}
+  .badge-down {{ background: rgba(244,114,182,0.14); color: var(--pink); }}
+  .badge-neutral {{ background: rgba(139,147,167,0.14); color: var(--muted); }}
+
+  .section-title {{
+    color: var(--muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 28px 0 12px;
+    font-weight: 600;
+  }}
+  .chart-wrap {{
+    background: rgba(255,255,255,0.02);
+    border-radius: 20px;
+    padding: 18px 20px 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }}
   canvas {{ max-width: 100%; }}
-  .chart-wrap {{ margin-bottom: 28px; }}
   img.heatmap {{
     max-width: 100%;
-    border-radius: 6px;
-    background: #fff;
+    border-radius: 20px;
+    display: block;
+    border: 1px solid rgba(255,255,255,0.05);
   }}
   table {{
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 14px;
     width: 100%;
     font-size: 14px;
+    overflow: hidden;
+    border-radius: 16px;
   }}
   th, td {{
     text-align: left;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--card-border);
+    padding: 11px 16px;
   }}
-  th {{ color: var(--orange); font-weight: 600; }}
-  .no-data {{ color: var(--muted); font-style: italic; }}
-  .section-title {{
+  thead th {{
     color: var(--muted);
-    font-size: 13px;
+    font-weight: 500;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 24px 0 8px;
+    background: rgba(255,255,255,0.03);
   }}
+  tbody tr:nth-child(odd) {{ background: rgba(255,255,255,0.015); }}
+  tbody td {{ color: var(--text); }}
+  .no-data {{ color: var(--muted); font-style: italic; }}
 </style>
 </head>
 <body>
 <header>
-  <h1>AERON — Population des serveurs</h1>
-  <div class="meta">Genere le {generated_at} · periode couverte : {data_range}</div>
+  <div>
+    <div class="eyebrow">Flotte Aeron · Telemetrie</div>
+    <h1>Observatoire de population</h1>
+  </div>
+  <div class="meta">Genere le {generated_at}<br>Periode couverte : {data_range}</div>
 </header>
 """]
 
     for label, img_b64, low_rows, stats, chart_labels, chart_values, color in sections:
-        html_parts.append(f'<div class="server-block"><h2>{label}</h2>')
+        html_parts.append(
+            f'<div class="server-block"><div class="server-header">'
+            f'<span class="server-dot" style="color:{color}; background:{color};"></span>'
+            f'<h2>{label}</h2></div>'
+        )
 
         if stats is None:
             html_parts.append('<p class="no-data">Pas encore assez de donnees pour ce serveur.</p></div>')
@@ -318,8 +391,8 @@ def build_html(sections, generated_at, data_range):
 
         if chart_labels:
             chart_id = f"chart_{label}".replace(" ", "_").replace("-", "_")
-            html_parts.append(f'<div class="section-title">Evolution de la population</div>')
-            html_parts.append(f'<div class="chart-wrap"><canvas id="{chart_id}" height="80"></canvas></div>')
+            html_parts.append('<div class="section-title">Evolution de la population</div>')
+            html_parts.append(f'<div class="chart-wrap"><canvas id="{chart_id}" height="70"></canvas></div>')
             html_parts.append(f"""
             <script>
             new Chart(document.getElementById("{chart_id}"), {{
@@ -330,19 +403,19 @@ def build_html(sections, generated_at, data_range):
                   label: "Joueurs",
                   data: {json.dumps(chart_values)},
                   borderColor: "{color}",
-                  backgroundColor: "{color}33",
+                  backgroundColor: "{color}22",
                   fill: true,
-                  tension: 0.25,
+                  tension: 0.3,
                   pointRadius: 0,
-                  borderWidth: 2
+                  borderWidth: 2.5
                 }}]
               }},
               options: {{
                 responsive: true,
                 plugins: {{ legend: {{ display: false }} }},
                 scales: {{
-                  x: {{ ticks: {{ color: "#8a8a8f", maxTicksLimit: 10 }}, grid: {{ color: "#2a2a2d" }} }},
-                  y: {{ ticks: {{ color: "#8a8a8f" }}, grid: {{ color: "#2a2a2d" }}, beginAtZero: true }}
+                  x: {{ ticks: {{ color: "#8b93a7", maxTicksLimit: 8 }}, grid: {{ display: false }} }},
+                  y: {{ ticks: {{ color: "#8b93a7" }}, grid: {{ color: "rgba(255,255,255,0.05)" }}, beginAtZero: true }}
                 }}
               }}
             }});
@@ -353,10 +426,10 @@ def build_html(sections, generated_at, data_range):
             html_parts.append('<div class="section-title">Population moyenne par jour / heure</div>')
             html_parts.append(f'<img class="heatmap" src="data:image/png;base64,{img_b64}" alt="Heatmap {label}">')
             html_parts.append('<div class="section-title">Creneaux les moins actifs</div>')
-            html_parts.append('<table><tr><th>Jour</th><th>Heure</th><th>Joueurs (moyenne)</th></tr>')
+            html_parts.append('<table><thead><tr><th>Jour</th><th>Heure</th><th>Joueurs (moy.)</th></tr></thead><tbody>')
             for jour, heure, val in low_rows:
                 html_parts.append(f"<tr><td>{jour}</td><td>{heure}</td><td>{val}</td></tr>")
-            html_parts.append("</table>")
+            html_parts.append("</tbody></table>")
 
         html_parts.append("</div>")
 
