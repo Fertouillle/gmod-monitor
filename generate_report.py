@@ -44,7 +44,7 @@ def load_data():
 
 def fig_to_base64(fig):
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight", facecolor=fig.get_facecolor())
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")
@@ -59,7 +59,7 @@ def make_heatmap_image(df, server_label):
     pivot = pivot.reindex(index=range(7), columns=range(24))
 
     plt.rcParams["font.family"] = "sans-serif"
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(10, 4.2))
     fig.patch.set_facecolor("#11162a")
     ax.set_facecolor("#11162a")
 
@@ -135,7 +135,7 @@ def get_summary_stats(df, server_label):
     }
 
 
-def get_timeseries(df, server_label, max_points=500):
+def get_timeseries(df, server_label, max_points=200):
     """Retourne (labels, values) pour le graphique d'evolution, sous-echantillonne si besoin."""
     sub = df[df["server_label"] == server_label].dropna(subset=["players"]).sort_values("timestamp")
     if sub.empty:
@@ -201,6 +201,7 @@ def build_html(sections, generated_at, data_range):
       radial-gradient(circle at 12% 8%, rgba(129,140,248,0.16), transparent 42%),
       radial-gradient(circle at 88% 18%, rgba(45,212,191,0.13), transparent 40%),
       var(--bg-0);
+    background-attachment: scroll;
     color: var(--text);
     font-family: 'Inter', -apple-system, sans-serif;
     padding: 48px clamp(20px, 6vw, 96px) 80px;
@@ -237,8 +238,8 @@ def build_html(sections, generated_at, data_range):
   .server-block {{
     background: var(--glass);
     border: 1px solid var(--glass-border);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border-radius: 28px;
     padding: 32px clamp(20px, 3vw, 40px);
     margin-bottom: 32px;
@@ -412,6 +413,7 @@ def build_html(sections, generated_at, data_range):
               }},
               options: {{
                 responsive: true,
+                animation: false,
                 plugins: {{ legend: {{ display: false }} }},
                 scales: {{
                   x: {{ ticks: {{ color: "#8b93a7", maxTicksLimit: 8 }}, grid: {{ display: false }} }},
