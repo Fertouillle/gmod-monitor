@@ -109,3 +109,8 @@ timestamp,server_label,players,max_players,bots,map,online
 2026-08-03T23:14:18,NEXUS,1,64,0,rp_nexus_base_tropical_v1,1
 2026-08-03T23:14:18,AXIOM,0,64,0,rp_axiom_battleground,1
 2026-08-03T23:14:18,COSMOS,,,,,0
+2026-08-04T00:15:59,AETHER,,,,,0
+2026-08-04T00:15:59,AETHER_EVENT,0,64,0,rp_venator_notorious,1
+2026-08-04T00:15:59,NEXUS,0,64,0,rp_nexus_base_tropical_v1,1
+2026-08-04T00:15:59,AXIOM,0,64,0,rp_axiom_battleground,1
+2026-08-04T00:15:59,COSMOS,,,,,0
